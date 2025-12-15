@@ -15,10 +15,10 @@ This version adds **Kiro CLI** compatibility through the steering folder system,
 ## 📁 File Structure
 
 ```
-OpenAgentDefinition_KiroCompatible/
+OpenAgentDefinition/
 │
 ├── README.md                                 # This file
-├── OpenAgentDefinition_KiroCompatible.md     # 📄 Complete specification (copy this!)
+├── OpenAgentDefinition.md                    # 📄 Complete specification (copy this!)
 │
 └── Templates/                                # Ready-to-use templates
     ├── kiro_steering_agents.md               # .kiro/steering/agents.md
@@ -29,7 +29,7 @@ OpenAgentDefinition_KiroCompatible/
 
 ## 🚀 Quick Start
 
-1. **Copy the main specification** → `OpenAgentDefinition_KiroCompatible.md`
+1. **Copy the main specification** → `OpenAgentDefinition.md`
 2. **Copy the templates** → Use files from `Templates/` in your `.kiro/steering/` folder
 
 ## 🔧 Tool Compatibility
@@ -44,7 +44,7 @@ OpenAgentDefinition_KiroCompatible/
 ## 📖 What's Included
 
 ### Main Specification
-The `OpenAgentDefinition_KiroCompatible.md` file contains:
+The `OpenAgentDefinition.md` file contains:
 - What Is an Open Agent System?
 - Core Architecture & Pointer Pattern
 - Folder Structure
@@ -66,3 +66,4 @@ Copy these directly to your `.kiro/steering/` folder:
 ## 📝 License
 
 This is a derivative work based on the [Open Agent System](https://github.com/bladnman/open-agent-system) specification.
+
