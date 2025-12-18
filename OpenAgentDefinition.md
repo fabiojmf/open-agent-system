@@ -148,6 +148,8 @@ existing-project/
 ├── GEMINI.md                    # Augmented with pointer
 │
 ├── .kiro/                       # Kiro CLI configuration
+│   ├── agents/                  # Kiro agent drivers (JSON)
+│   │   └── {agent}.json         # Points to open-agents/agents/{agent}.md
 │   └── steering/                # Kiro steering files
 │       ├── agents.md            # Open Agent pointer for Kiro
 │       ├── product.md           # Optional: Product context
@@ -584,8 +586,9 @@ mkdir -p open-agents/{agents,tools,source,output-drafts,output-refined,output-fi
 mkdir -p .claude/commands/{domain}
 mkdir -p .gemini/commands/{domain}
 
-# Create Kiro steering folder (for Kiro CLI compatibility)
+# Create Kiro folders (for Kiro CLI compatibility)
 mkdir -p .kiro/steering
+mkdir -p .kiro/agents
 ```
 
 #### Step 2: Create the README.md
@@ -842,6 +845,57 @@ See the `Templates/` folder for ready-to-use templates.
 
 **Priority:** Workspace steering overrides global steering when they conflict.
 
+### The .kiro/agents/ Folder (Driver Pattern)
+
+In addition to steering files, Kiro supports a dedicated agents folder where JSON files act as **Drivers** that point to your agent definitions.
+
+#### The Concept
+
+JSON files in `.kiro/agents/` don't contain intelligence—they only point to the "Source of Truth" (your Markdown files in `open-agents/agents/`).
+
+#### Folder Structure
+
+```
+your-project/
+├── .kiro/
+│   └── agents/
+│       ├── architect.json    ← Driver (points to MD using "../../")
+│       └── backend.json      ← Driver (points to MD using "../../")
+├── open-agents/
+│   └── agents/
+│       ├── architect.md      ← Brain (actual prompt)
+│       └── backend.md        ← Brain (actual prompt)
+```
+
+#### The JSON Pattern
+
+Create a `.json` file for each agent in `.kiro/agents/`:
+
+```json
+{
+  "name": "architect",
+  "description": "OCAI Architect - System Design",
+  "prompt": "file://../../open-agents/agents/architect.md",
+  "allowedTools": ["read_file", "write_file", "list_files"]
+}
+```
+
+#### Why `../../`?
+
+Kiro resolves paths relative to the JSON file location:
+
+1. First `../` → from `agents/` to `.kiro/`
+2. Second `../` → from `.kiro/` to project root
+3. From root → `open-agents/agents/architect.md`
+
+#### Setting Up the Agents Folder
+
+```bash
+mkdir -p .kiro/agents
+```
+
+Then create a JSON driver for each agent you want to expose to Kiro.
+
 ### Best Practices for Kiro Integration
 
 1. **Keep Files Focused** - One domain per file
@@ -870,6 +924,10 @@ my-existing-project/
 ├── GEMINI.md                    # Augmented with Open Agents section
 │
 ├── .kiro/                       # Kiro CLI configuration
+│   ├── agents/                  # Agent drivers
+│   │   ├── researcher.json
+│   │   ├── html_generator.json
+│   │   └── data_extractor.json
 │   └── steering/
 │       ├── agents.md            # Open Agent pointer
 │       ├── product.md           # Product context
@@ -920,9 +978,20 @@ my-existing-project/
 
 ### Available Commands
 
+#### Codex
 - `/history research [topic]` — Research and create article
 - `/history html [file]` — Generate HTML from article
 - `/history extract [file]` — Extract structured JSON
+
+#### Kiro CLI
+- `kiro-cli --agent researcher` — Research and create article
+- `kiro-cli --agent html_generator` — Generate HTML from article
+- `kiro-cli --agent data_extractor` — Extract structured JSON
+
+#### Claude Code / Gemini CLI
+- "research [topic]" — Research and create article
+- "create HTML from [file]" — Generate HTML from article
+- "extract data from [file]" — Extract structured JSON
 ```
 
 #### Kiro Steering File (.kiro/steering/agents.md)

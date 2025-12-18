@@ -24,13 +24,14 @@ OpenAgentDefinition/
     ├── kiro_steering_agents.md               # .kiro/steering/agents.md
     ├── kiro_steering_product.md              # .kiro/steering/product.md
     ├── kiro_steering_tech.md                 # .kiro/steering/tech.md
-    └── kiro_steering_structure.md            # .kiro/steering/structure.md
+    ├── kiro_steering_structure.md            # .kiro/steering/structure.md
+    └── kiro_agent_driver.json                # .kiro/agents/{agent}.json template
 ```
 
 ## 🚀 Quick Start
 
 1. **Copy the main specification** → `OpenAgentDefinition.md`
-2. **Copy the templates** → Use files from `Templates/` in your `.kiro/steering/` folder
+2. **Copy the templates** → Use files from `Templates/` in your `.kiro/steering/` and `.kiro/agents/` folders
 
 ## 🔧 Tool Compatibility
 
@@ -39,7 +40,7 @@ OpenAgentDefinition/
 | Claude Code | `CLAUDE.md` | ✅ Supported |
 | Codex | `AGENTS.md` | ✅ Supported |
 | Gemini CLI | `GEMINI.md` | ✅ Supported |
-| **Kiro CLI** | `.kiro/steering/` | ✅ **Now Supported** |
+| **Kiro CLI** | `.kiro/steering/` + `.kiro/agents/` | ✅ **Now Supported** |
 
 ## 📖 What's Included
 
@@ -57,11 +58,16 @@ The `OpenAgentDefinition.md` file contains:
 - Complete Example
 
 ### Templates
-Copy these directly to your `.kiro/steering/` folder:
+Copy these directly to your `.kiro/` folder:
+
+**Steering files** (`.kiro/steering/`):
 - **agents.md** - Entry point for Open Agent System
 - **product.md** - Product context template
 - **tech.md** - Technology stack template
 - **structure.md** - Project structure template
+
+**Agent drivers** (`.kiro/agents/`):
+- **kiro_agent_driver.json** - Template for agent JSON drivers (points to your MD files)
 
 ## 📝 License
 

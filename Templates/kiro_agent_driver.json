@@ -1,0 +1,26 @@
+{
+  "name": "{agent-name}",
+  "description": "{Brief description of what this agent does}",
+  "prompt": "file://../../open-agents/agents/{agent-name}.md",
+  "tools": [
+    "read",
+    "write", 
+    "shell",
+    "@git",
+    "@fetch/fetch_url"
+  ],
+  "allowedTools": [
+    "read",
+    "knowledge",
+    "@server/specific_tool",
+    "r*",
+    "w*",
+    "@builtin",
+    "@server/api_*",
+    "@server/read_*",
+    "@git-server/get_*_info",
+    "@*/status",
+    "@fetch",
+    "@git-*"
+  ]
+}
