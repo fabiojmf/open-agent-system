@@ -30,8 +30,37 @@ OpenAgentDefinition/
 
 ## 🚀 Quick Start
 
+### Using This to Bootstrap a New Project
+
+You can use this Open Agent System to generate the complete agent infrastructure for your new software project. Simply provide this repository URL to your AI assistant:
+
+**Example prompt:**
+
+```
+Create a Python + FastAPI project for managing poker game groups and tournaments. 
+Use https://github.com/fabiojmf/open-agent-system as the foundation to set up 
+the complete Open Agent System structure with:
+
+- Agent definitions for architecture, backend, and testing
+- Kiro CLI configuration with skills and proper tool permissions
+- Steering files for product context and tech stack
+- YAML frontmatter for progressive context loading
+
+Then scaffold the FastAPI application structure around it.
+```
+
+**What you'll get:**
+- ✅ Complete `.kiro/` configuration (agents, steering, skills)
+- ✅ `open-agents/` folder with agent definitions
+- ✅ Entry point files (AGENTS.md, CLAUDE.md, GEMINI.md)
+- ✅ Your software project structure
+- ✅ Ready to use with Kiro CLI, Claude Code, Codex, or Gemini CLI
+
+### Manual Setup
+
 1. **Copy the main specification** → `OpenAgentDefinition.md`
 2. **Copy the templates** → Use files from `Templates/` in your `.kiro/steering/` and `.kiro/agents/` folders
+3. **Customize for your domain** → Update agent definitions, product context, tech stack
 
 ## 🔧 Tool Compatibility
 

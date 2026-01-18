@@ -22,5 +22,10 @@
     "@*/status",
     "@fetch",
     "@git-*"
-  ]
+  ],
+  "resources": [
+    "skill://../../open-agents/agents/*.md"
+  ],
+  "keyboardShortcut": "ctrl+{key}",
+  "welcomeMessage": "Ready to help with {agent purpose}!"
 }

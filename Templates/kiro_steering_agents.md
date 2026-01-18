@@ -39,3 +39,8 @@ All agent outputs go to subdirectories within `open-agents/`:
 - **Drafts**: `open-agents/output-drafts/`
 - **Refined**: `open-agents/output-refined/`
 - **Final**: `open-agents/output-final/`
+
+
+---
+
+**Note:** This steering file provides high-level context. Full agent definitions are loaded on demand as skills to keep context lean.

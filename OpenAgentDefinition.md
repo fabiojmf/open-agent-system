@@ -376,6 +376,229 @@ constructing the ffmpeg commands manually each time.
 
 ---
 
+## 4.1. Skills - Progressive Context Loading (Kiro 1.24+)
+
+### What Are Skills?
+
+Skills are a resource type designed for **progressive context loading**. Instead of loading entire agent definitions or documentation at startup, skills load only metadata (name and description) initially. Full content loads on demand when the agent determines it's needed.
+
+### Why Use Skills?
+
+**Problem:** Large agent definitions and documentation waste context tokens when loaded upfront but not used.
+
+**Solution:** Skills keep context lean by loading metadata first, full content only when needed.
+
+### Skills vs File Resources
+
+| Type | Loading | Use Case |
+|------|---------|----------|
+| `file://` | Full content at startup | Critical info needed in every conversation |
+| `skill://` | Metadata at startup, content on demand | Large docs, agent definitions, optional context |
+
+### Creating Skill Files
+
+Skill files require **YAML frontmatter** with `name` and `description`:
+
+```markdown
+---
+name: researcher-agent
+description: Research historical topics and produce comprehensive markdown articles. Use when user asks to research, expand articles, or needs detailed historical information.
+---
+
+# Researcher Agent
+
+[... full agent definition ...]
+```
+
+**Critical:** Write specific, descriptive `description` fields so the agent reliably knows when to load the full content.
+
+### Using Skills in Agent Configuration
+
+Reference skills using `skill://` URIs in the `resources` field:
+
+```json
+{
+  "name": "researcher",
+  "description": "Historical research specialist",
+  "prompt": "file://../../open-agents/agents/researcher.md",
+  "resources": [
+    "skill://../../open-agents/agents/*.md",
+    "skill://../../open-agents/context/*.md"
+  ],
+  "tools": ["read", "write", "web_search"]
+}
+```
+
+### Skill Patterns
+
+**Single skill:**
+```json
+"resources": ["skill://../../open-agents/agents/researcher.md"]
+```
+
+**All agents as skills:**
+```json
+"resources": ["skill://../../open-agents/agents/*.md"]
+```
+
+**Nested skills:**
+```json
+"resources": ["skill://../../open-agents/**/SKILL.md"]
+```
+
+### Best Practices
+
+1. **Use skills for large content** - Agent definitions, detailed specs, extensive documentation
+2. **Use file:// for critical context** - Information needed in every conversation
+3. **Write specific descriptions** - Help the agent determine when to load content
+4. **Keep steering lean** - Move large content from `.kiro/steering/` to skills
+5. **Maintain single source** - Keep agents in `open-agents/agents/`, reference as skills
+
+### Example: Converting Agents to Skills
+
+**Before (file resources):**
+```json
+{
+  "resources": [
+    "file://../../open-agents/agents/researcher.md",
+    "file://../../open-agents/agents/architect.md",
+    "file://../../open-agents/agents/backend.md"
+  ]
+}
+```
+All agents loaded at startup, wasting context.
+
+**After (skill resources):**
+```json
+{
+  "prompt": "file://../../open-agents/agents/researcher.md",
+  "resources": [
+    "skill://../../open-agents/agents/*.md"
+  ]
+}
+```
+Only researcher loaded directly, others available on demand.
+
+---
+
+## 4.2. Knowledge Bases - Indexed Documentation (Kiro 1.24+)
+
+### What Are Knowledge Bases?
+
+Knowledge bases allow agents to **search indexed documentation** rather than loading everything into context. With support for millions of tokens of indexed content, agents can efficiently search large documentation sets.
+
+### Why Use Knowledge Bases?
+
+**Problem:** Massive documentation sets (API docs, specs, meeting notes) can't fit in context.
+
+**Solution:** Index content once, search semantically when needed. Only relevant chunks load into context.
+
+### Knowledge Base vs Skills vs Files
+
+| Type | Loading | Search | Use Case |
+|------|---------|--------|----------|
+| `file://` | Full at startup | No | Critical info, always needed |
+| `skill://` | Metadata at startup | No | Large docs, load when triggered |
+| Knowledge Base | Indexed, search on demand | Yes | Massive docs, semantic search |
+
+### Creating Knowledge Base Resources
+
+Add knowledge bases in the `resources` field:
+
+```json
+{
+  "resources": [
+    {
+      "type": "knowledgeBase",
+      "source": "file://./docs",
+      "name": "ProjectDocs",
+      "description": "Project documentation and guides",
+      "indexType": "best",
+      "autoUpdate": true
+    }
+  ]
+}
+```
+
+### Configuration Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `type` | Yes | Must be `"knowledgeBase"` |
+| `source` | Yes | Path to index (use `file://` prefix) |
+| `name` | Yes | Display name for the knowledge base |
+| `description` | No | Brief description of the content |
+| `indexType` | No | `"best"` (default, higher quality) or `"fast"` (quicker indexing) |
+| `autoUpdate` | No | Re-index when agent spawns (default: `false`) |
+
+### Use Cases
+
+**Team Documentation:**
+```json
+{
+  "type": "knowledgeBase",
+  "source": "file://./team-docs",
+  "name": "TeamKnowledge",
+  "description": "Team decisions, meeting notes, and processes",
+  "autoUpdate": true
+}
+```
+
+**API Documentation:**
+```json
+{
+  "type": "knowledgeBase",
+  "source": "file://./api-docs",
+  "name": "APIDocs",
+  "description": "Complete API reference documentation",
+  "indexType": "best"
+}
+```
+
+**Open Agent System:**
+```json
+{
+  "type": "knowledgeBase",
+  "source": "file://./open-agents",
+  "name": "AgentSystem",
+  "description": "Agent definitions, specs, and workflow documentation",
+  "autoUpdate": true
+}
+```
+
+### Best Practices
+
+1. **Index stable content** - Documentation, specs, historical data
+2. **Use autoUpdate for changing content** - Meeting notes, evolving specs
+3. **Choose indexType wisely** - `"best"` for quality, `"fast"` for speed
+4. **Write clear descriptions** - Help users understand what's indexed
+5. **Combine with skills** - Use knowledge bases for search, skills for structured loading
+
+### Example: Complete Resource Strategy
+
+```json
+{
+  "name": "project-agent",
+  "resources": [
+    "file://.kiro/steering/agents.md",
+    "skill://../../open-agents/agents/*.md",
+    {
+      "type": "knowledgeBase",
+      "source": "file://./docs",
+      "name": "ProjectDocs",
+      "autoUpdate": true
+    }
+  ]
+}
+```
+
+**Strategy:**
+- **file://** - Critical pointer to agent system (always loaded)
+- **skill://** - Agent definitions (load on demand)
+- **knowledgeBase** - Large documentation (search when needed)
+
+---
+
 ## 5. The Command System
 
 ### What Commands Are
@@ -876,7 +1099,11 @@ Create a `.json` file for each agent in `.kiro/agents/`:
   "name": "architect",
   "description": "OCAI Architect - System Design",
   "prompt": "file://../../open-agents/agents/architect.md",
-  "allowedTools": ["read_file", "write_file", "list_files"]
+  "tools": ["read", "write", "shell"],
+  "allowedTools": ["read", "knowledge"],
+  "resources": [
+    "skill://../../open-agents/agents/*.md"
+  ]
 }
 ```
 
@@ -895,6 +1122,63 @@ mkdir -p .kiro/agents
 ```
 
 Then create a JSON driver for each agent you want to expose to Kiro.
+
+### Hooks - Lifecycle Commands (Kiro 1.24+)
+
+Hooks allow you to run commands at specific trigger points during agent lifecycle and tool execution.
+
+#### Available Hook Types
+
+| Hook | When It Runs |
+|------|--------------|
+| `agentSpawn` | When agent is initialized |
+| `userPromptSubmit` | When user submits a message |
+| `preToolUse` | Before a tool is executed (can block) |
+| `postToolUse` | After a tool is executed |
+| `stop` | When assistant finishes responding |
+
+#### Hook Configuration
+
+```json
+{
+  "hooks": {
+    "agentSpawn": [
+      {
+        "command": "git status"
+      }
+    ],
+    "preToolUse": [
+      {
+        "matcher": "execute_bash",
+        "command": "{ echo \"$(date) - Bash:\"; cat; } >> /tmp/audit.log"
+      },
+      {
+        "matcher": "use_aws",
+        "command": "{ echo \"$(date) - AWS:\"; cat; } >> /tmp/aws_audit.log"
+      }
+    ],
+    "postToolUse": [
+      {
+        "matcher": "fs_write",
+        "command": "cargo fmt --all"
+      }
+    ]
+  }
+}
+```
+
+#### Important: Tool Names for Hooks
+
+Hooks use **internal tool names**, not simplified names:
+
+| Simplified | Internal (use in hooks) |
+|------------|-------------------------|
+| `shell` | `execute_bash` |
+| `write` | `fs_write` |
+| `read` | `fs_read` |
+| `aws` | `use_aws` |
+
+See [Kiro Built-in Tools documentation](https://kiro.dev/docs/cli/reference/built-in-tools) for complete list.
 
 ### Best Practices for Kiro Integration
 
