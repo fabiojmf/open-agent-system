@@ -24,7 +24,8 @@
     "@git-*"
   ],
   "resources": [
-    "skill://../../open-agents/agents/*.md"
+    "skill://../../open-agents/agents/*.md",
+    "skill://../../skills/**/SKILL.md"
   ],
   "keyboardShortcut": "ctrl+{key}",
   "welcomeMessage": "Ready to help with {agent purpose}!"

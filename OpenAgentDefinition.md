@@ -17,8 +17,9 @@ A comprehensive specification for building and managing Open Agent Systems—pro
 7. [Operations Guide](#7-operations-guide)
 8. [Adding to an Existing Project](#8-adding-to-an-existing-project)
 9. [Kiro CLI Integration](#9-kiro-cli-integration)
-10. [Complete Example](#10-complete-example)
-11. [Summary](#summary)
+10. [Skill Creator Guide](#10-skill-creator-guide)
+11. [Complete Example](#11-complete-example)
+12. [Summary](#summary)
 
 ---
 
@@ -1191,7 +1192,140 @@ See [Kiro Built-in Tools documentation](https://kiro.dev/docs/cli/reference/buil
 
 ---
 
-## 10. Complete Example
+## 10. Skill Creator Guide
+
+Adapted from [Anthropic's skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator) for creating advanced skills with bundled resources.
+
+### 10.1. Quick Start
+
+#### Create a New Skill
+
+```bash
+python scripts/init_skill.py --path ./skills/my-skill
+```
+
+This creates:
+```
+my-skill/
+├── SKILL.md              # Main skill definition
+├── scripts/              # Executable code (Python/Bash)
+├── references/           # Documentation loaded on demand
+└── assets/               # Files used in output
+```
+
+#### Edit the Skill
+
+1. Update `SKILL.md` frontmatter (name + description)
+2. Add your workflow instructions
+3. Add scripts, references, or assets as needed
+4. Delete example files you don't need
+
+#### Package the Skill
+
+```bash
+python scripts/package_skill.py ./skills/my-skill
+```
+
+This validates and creates `my-skill.skill` (distributable zip).
+
+### 10.2. Advanced Skill Anatomy
+
+#### SKILL.md (Required)
+
+```markdown
+---
+name: skill-name
+description: |
+  What this skill does and when to use it.
+  
+  Use when:
+  - Scenario 1
+  - Scenario 2
+  
+  Do NOT use when:
+  - Other scenario
+---
+
+# Skill Name
+
+## Core Workflow
+[Step-by-step instructions]
+
+## Output Format
+[Expected output]
+```
+
+**Critical:** Description is the primary trigger mechanism. Be comprehensive.
+
+#### Bundled Resources (Optional)
+
+**scripts/** - Deterministic, repeatedly-written code
+- Prevents rewriting same code
+- Can be executed without loading to context
+- Example: `scripts/rotate_pdf.py`
+
+**references/** - Documentation loaded on demand
+- Keeps SKILL.md lean
+- Loaded only when needed
+- Example: `references/api_docs.md`
+
+**assets/** - Files used in output (not loaded to context)
+- Templates, images, fonts
+- Copied/modified in final output
+- Example: `assets/template.html`
+
+### 10.3. Progressive Disclosure Pattern
+
+For large skills, split content:
+
+```markdown
+# SKILL.md (lean - ~200 lines)
+
+## Quick Start
+[Basic example]
+
+## Domain-Specific Guides
+- **Finance**: See [references/finance.md](references/finance.md)
+- **Sales**: See [references/sales.md](references/sales.md)
+```
+
+Agent loads references only when needed, keeping context efficient.
+
+### 10.4. Integration
+
+#### Kiro CLI
+
+Add to `.kiro/agents/{agent}.json`:
+```json
+{
+  "resources": [
+    "skill://./skills/**/SKILL.md"
+  ]
+}
+```
+
+#### Claude Code
+
+Skills work automatically when in project directory.
+
+### 10.5. Best Practices
+
+1. **Concise descriptions** - Only add what Claude doesn't know
+2. **Match freedom to fragility** - Scripts for fragile operations, text for flexible ones
+3. **Progressive disclosure** - Keep SKILL.md under 500 lines
+4. **Clear triggers** - Explicit "when to use" / "when NOT to use"
+5. **Validate before sharing** - Run `package_skill.py`
+
+### 10.6. Validation Rules
+
+- ✅ YAML frontmatter with `name` and `description`
+- ✅ Description minimum 50 characters
+- ✅ No TODO placeholders in frontmatter
+- ✅ Valid markdown structure
+
+---
+
+## 11. Complete Example
 
 ### History Research System
 
@@ -1363,7 +1497,7 @@ An open agent system for researching historical topics.
 
 ---
 
-## Summary
+## 12. Summary
 
 An Open Agent System consists of:
 
