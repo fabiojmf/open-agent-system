@@ -301,12 +301,24 @@ Just want simple skills without routing?
 
 ## 🔧 Tool Compatibility
 
-| Tool | Entry Point | Status |
-|------|-------------|--------|
-| **Kiro CLI** | `.kiro/steering/` + `.kiro/agents/` | ✅ Primary |
-| Claude Code | `CLAUDE.md` | ✅ Supported |
-| Codex | `AGENTS.md` | ✅ Supported |
-| Gemini CLI | `GEMINI.md` | ✅ Supported |
+**This system works with ALL major AI coding assistants!**
+
+While optimized for Kiro CLI, the same agent definitions and skills work seamlessly across:
+
+| Tool | Entry Point | How It Works | Status |
+|------|-------------|--------------|--------|
+| **Kiro CLI** | `.kiro/steering/` + `.kiro/agents/` | Configured via JSON, uses steering files | ✅ Primary |
+| **Claude Code** | `CLAUDE.md` | Auto-detects skills with YAML frontmatter | ✅ Fully Supported |
+| **Gemini CLI** | `GEMINI.md` | Auto-detects skills with YAML frontmatter | ✅ Fully Supported |
+| **Codex** | `AGENTS.md` | Reads markdown files and routing logic | ✅ Fully Supported |
+
+**Key Benefit:** Write your agents and skills once, use them everywhere. The `open-agents/` folder and skill definitions are tool-agnostic.
+
+**What's Different:**
+- **Entry points** - Each tool has its own entry file
+- **Configuration** - Kiro uses JSON, others use markdown
+- **Agent definitions** - Same files work for all tools ✅
+- **Skills** - Same YAML frontmatter works for all tools ✅
 
 ---
 
