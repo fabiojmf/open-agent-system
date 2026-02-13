@@ -403,7 +403,7 @@ Skill files require **YAML frontmatter** with `name` and `description`:
 ```markdown
 ---
 name: researcher-agent
-description: Research historical topics and produce comprehensive markdown articles. Use when user asks to research, expand articles, or needs detailed historical information.
+description: Research historical topics and produce comprehensive markdown articles. Use when user asks to research, expand articles, or needs detailed historical information. Triggers on requests involving history, timelines, or biographical research.
 ---
 
 # Researcher Agent
@@ -411,7 +411,11 @@ description: Research historical topics and produce comprehensive markdown artic
 [... full agent definition ...]
 ```
 
-**Critical:** Write specific, descriptive `description` fields so the agent reliably knows when to load the full content.
+**Critical:** The `description` field is the **primary triggering mechanism** — the body is only loaded after triggering. Write descriptions that include:
+- **What** the skill does
+- **When** to use it (trigger contexts, task types)
+- **Keywords** users might mention
+- Max 1024 characters. See Section 10.2 for detailed guidance.
 
 ### Using Skills in Agent Configuration
 
@@ -1194,104 +1198,178 @@ See [Kiro Built-in Tools documentation](https://kiro.dev/docs/cli/reference/buil
 
 ## 10. Skill Creator Guide
 
-Adapted from [Anthropic's skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator) for creating advanced skills with bundled resources.
+Adapted from [Anthropic's skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator) and [The Complete Guide to Building Skills for Claude](https://claude.com/blog/complete-guide-to-building-skills-for-claude).
 
-### 10.1. Quick Start
+### 10.1. Core Design Principles
 
-#### Create a New Skill
+#### Principle 1: Concise is Key
 
-```bash
-python scripts/init_skill.py --path ./skills/my-skill
-```
+The context window is a shared resource. Skills share it with the system prompt, conversation history, other skills' metadata, and the user's request.
 
-This creates:
-```
-my-skill/
-├── SKILL.md              # Main skill definition
-├── scripts/              # Executable code (Python/Bash)
-├── references/           # Documentation loaded on demand
-└── assets/               # Files used in output
-```
+**Default assumption: the agent is already very smart.** Only add context it doesn't already have.
 
-#### Edit the Skill
+Challenge each piece of information:
+- "Does the agent really need this explanation?"
+- "Does this paragraph justify its token cost?"
+- Prefer concise examples over verbose explanations
 
-1. Update `SKILL.md` frontmatter (name + description)
-2. Add your workflow instructions
-3. Add scripts, references, or assets as needed
-4. Delete example files you don't need
+#### Principle 2: Degrees of Freedom
 
-#### Package the Skill
+Match specificity to the task's fragility and variability:
 
-```bash
-python scripts/package_skill.py ./skills/my-skill
-```
+| Freedom | When to Use | Implementation |
+|---------|-------------|----------------|
+| **High** | Multiple valid approaches, context-dependent | Text-based instructions |
+| **Medium** | Preferred pattern exists, some variation OK | Pseudocode or parameterized scripts |
+| **Low** | Fragile operations, consistency critical | Specific scripts, few parameters |
 
-This validates and creates `my-skill.skill` (distributable zip).
+#### Principle 3: Progressive Disclosure
 
-### 10.2. Advanced Skill Anatomy
+Three-tier loading to manage context efficiently:
+
+| Level | What | Token Cost | When Loaded |
+|-------|------|------------|-------------|
+| **1 - Metadata** | Name + description (YAML frontmatter) | ~100 tokens/skill | Always (startup) |
+| **2 - SKILL.md body** | Instructions and procedures | Target <5k tokens (<500 lines) | When agent determines skill is relevant |
+| **3 - Bundled resources** | scripts/, references/, assets/ | Unlimited | As needed during execution |
+
+### 10.2. Skill Anatomy
 
 #### SKILL.md (Required)
 
 ```markdown
 ---
 name: skill-name
-description: |
-  What this skill does and when to use it.
-  
-  Use when:
-  - Scenario 1
-  - Scenario 2
-  
-  Do NOT use when:
-  - Other scenario
+description: Comprehensive document creation, editing, and analysis with support for tracked changes, comments, and formatting preservation. Use when working with professional documents (.docx files) for creating new documents, modifying content, working with tracked changes, or adding comments. Triggers on requests involving Word documents, DOCX files, or document formatting.
 ---
 
 # Skill Name
 
 ## Core Workflow
-[Step-by-step instructions]
+[Step-by-step instructions in imperative form]
 
-## Output Format
-[Expected output]
+## Examples
+[Concrete input/output pairs]
+
+## Extended Capabilities
+- **Feature A**: See [references/feature_a.md](references/feature_a.md)
 ```
 
-**Critical:** Description is the primary trigger mechanism. Be comprehensive.
+#### Frontmatter Fields
+
+| Field | Required | Constraints |
+|-------|----------|-------------|
+| `name` | Yes | Lowercase, hyphens allowed, max 64 chars |
+| `description` | Yes | Max 1024 chars, must include WHAT and WHEN |
+| `allowed-tools` | No | Restrict tool access (e.g., `Bash, Read, Grep`) |
+
+#### Writing the Description (Critical)
+
+The description is the **primary triggering mechanism**. The body is only loaded after triggering — putting "When to Use" sections only in the body is ineffective.
+
+Include in the description:
+- **What** the skill does
+- **When** to use it (trigger contexts)
+- **File types** it handles (`.docx`, `.pdf`, `.yaml`)
+- **Task types** (creating, editing, analyzing, deploying)
+- **Keywords** users might mention
+
+**Good example:**
+```
+description: Create and manage database migrations for PostgreSQL, MySQL, and SQLite. Use when generating migrations, handling schema changes, managing rollbacks, or working with ORMs like Prisma or TypeORM. Triggers on migration requests, schema changes, or database versioning.
+```
+
+**Bad example:**
+```
+description: Handles database stuff.
+```
+
+#### Writing Style
+
+Always use **imperative/infinitive form** in skill content:
+- ✅ "Extract text from the PDF" / "Run the validation script"
+- ❌ "You should extract text" / "The skill will run validation"
 
 #### Bundled Resources (Optional)
 
-**scripts/** - Deterministic, repeatedly-written code
-- Prevents rewriting same code
-- Can be executed without loading to context
+**scripts/** — Deterministic, repeatedly-written code
+- Execute without loading into context (token efficient)
+- Test all scripts by actually running them
 - Example: `scripts/rotate_pdf.py`
 
-**references/** - Documentation loaded on demand
-- Keeps SKILL.md lean
-- Loaded only when needed
+**references/** — Documentation loaded on demand
+- Information lives in EITHER SKILL.md OR references — **never both**
+- Files >10k words: include grep search patterns in SKILL.md
+- Files >100 lines: include a table of contents at top
+- Avoid deeply nested references — keep one level deep from SKILL.md
 - Example: `references/api_docs.md`
 
-**assets/** - Files used in output (not loaded to context)
-- Templates, images, fonts
+**assets/** — Files used in output (not loaded to context)
+- Templates, images, fonts, boilerplate code
 - Copied/modified in final output
 - Example: `assets/template.html`
 
-### 10.3. Progressive Disclosure Pattern
+#### What NOT to Include
 
-For large skills, split content:
+A skill should only contain what an AI agent needs to do the job. Do NOT create:
+- README.md
+- INSTALLATION_GUIDE.md
+- QUICK_REFERENCE.md
+- CHANGELOG.md
 
+### 10.3. Progressive Disclosure Patterns
+
+#### Pattern 1: High-Level Guide with References
 ```markdown
-# SKILL.md (lean - ~200 lines)
+# PDF Processing
 
-## Quick Start
-[Basic example]
+## Quickstart
+Extract text with pdfplumber: [example]
 
-## Domain-Specific Guides
-- **Finance**: See [references/finance.md](references/finance.md)
-- **Sales**: See [references/sales.md](references/sales.md)
+## Additional Capabilities
+- **Form filling**: See [references/forms.md](references/forms.md)
+- **API reference**: See [references/reference.md](references/reference.md)
 ```
 
-Agent loads references only when needed, keeping context efficient.
+#### Pattern 2: Domain-Specific Organization
+```
+bigquery-skill/
+├── SKILL.md (overview and navigation)
+└── references/
+    ├── finance.md
+    ├── sales.md
+    └── product.md
+```
+When user asks about sales metrics, agent only reads `sales.md`.
 
-### 10.4. Integration
+#### Pattern 3: Framework/Variant Organization
+```
+cloud-deploy/
+├── SKILL.md (workflow + provider selection)
+└── references/
+    ├── aws.md
+    ├── gcp.md
+    └── azure.md
+```
+
+### 10.4. Quick Start (Python Scripts)
+
+```bash
+# Create skill structure
+python scripts/init_skill.py --path ./skills/my-skill
+
+# Edit SKILL.md (frontmatter + instructions)
+# Add scripts, references, or assets as needed
+# Delete example files you don't need
+
+# Validate
+python scripts/quick_validate.py ./skills/my-skill
+
+# Package for distribution
+python scripts/package_skill.py ./skills/my-skill
+```
+
+### 10.5. Integration
 
 #### Kiro CLI
 
@@ -1308,19 +1386,26 @@ Add to `.kiro/agents/{agent}.json`:
 
 Skills work automatically when in project directory.
 
-### 10.5. Best Practices
+### 10.6. Best Practices
 
-1. **Concise descriptions** - Only add what Claude doesn't know
-2. **Match freedom to fragility** - Scripts for fragile operations, text for flexible ones
-3. **Progressive disclosure** - Keep SKILL.md under 500 lines
-4. **Clear triggers** - Explicit "when to use" / "when NOT to use"
-5. **Validate before sharing** - Run `package_skill.py`
+1. **Concise is key** — Only add what the agent doesn't already know
+2. **Description is the trigger** — Include what, when, file types, keywords (max 1024 chars)
+3. **Match freedom to fragility** — Scripts for fragile ops, text for flexible ones
+4. **No duplication** — Content lives in SKILL.md OR references, never both
+5. **Progressive disclosure** — Keep SKILL.md under 500 lines / 5k tokens
+6. **Imperative style** — Write instructions as commands, not descriptions
+7. **Start with evaluation** — Identify agent gaps on real tasks, then build skills to fill them
+8. **Iterate with usage** — Use the skill, observe struggles, update, repeat
+9. **Validate before sharing** — Run `package_skill.py`
 
-### 10.6. Validation Rules
+### 10.7. Validation Rules
 
 - ✅ YAML frontmatter with `name` and `description`
-- ✅ Description minimum 50 characters
-- ✅ No TODO placeholders in frontmatter
+- ✅ `name`: lowercase, hyphens, max 64 chars
+- ✅ `description`: 50–1024 chars, includes WHAT and WHEN
+- ✅ No TODO placeholders
+- ✅ No duplicate content between SKILL.md and references
+- ✅ SKILL.md under 500 lines
 - ✅ Valid markdown structure
 
 ---
