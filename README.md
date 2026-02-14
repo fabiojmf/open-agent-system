@@ -85,6 +85,7 @@ project/
 {
   "prompt": "file://../../open-agents/INSTRUCTIONS.md",
   "resources": [
+    "file://.kiro/steering/**/*.md",
     "skill://../../open-agents/agents/*.md"
   ]
 }
@@ -181,10 +182,10 @@ For users who prefer command-line tools or need CI/CD integration:
 
 ```bash
 # 1. Create skill structure (generates template)
-python scripts/init_skill.py --path ./skills/pdf-editor
+python scripts/init_skill.py --path .kiro/skills/pdf-editor
 
 # Structure created:
-skills/pdf-editor/
+.kiro/skills/pdf-editor/
 ├── SKILL.md              # Template with TODOs - YOU EDIT THIS
 ├── scripts/              # Add your Python/Bash scripts here
 ├── references/           # Add detailed docs here
@@ -198,10 +199,10 @@ skills/pdf-editor/
 # - Add code examples/patterns
 
 # 3. Validate (checks for TODOs and format)
-python scripts/quick_validate.py ./skills/pdf-editor
+python scripts/quick_validate.py .kiro/skills/pdf-editor
 
 # 4. Package for distribution
-python scripts/package_skill.py ./skills/pdf-editor
+python scripts/package_skill.py .kiro/skills/pdf-editor
 # Creates: pdf-editor.skill (distributable zip)
 ```
 
@@ -307,10 +308,10 @@ While optimized for Kiro CLI, the same agent definitions and skills work seamles
 
 | Tool | Entry Point | How It Works | Status |
 |------|-------------|--------------|--------|
-| **Kiro CLI** | `.kiro/steering/` + `.kiro/agents/` | Configured via JSON, uses steering files | ✅ Primary |
+| **Kiro** | `.kiro/steering/` + `.kiro/agents/` + `.kiro/skills/` | Steering (IDE: inclusion modes), skills, powers | ✅ Primary |
 | **Claude Code** | `CLAUDE.md` | Auto-detects skills with YAML frontmatter | ✅ Fully Supported |
 | **Gemini CLI** | `GEMINI.md` | Auto-detects skills with YAML frontmatter | ✅ Fully Supported |
-| **Codex** | `AGENTS.md` | Reads markdown files and routing logic | ✅ Fully Supported |
+| **Codex** | `AGENTS.md` | Reads markdown files and routing logic (also auto-imported by Kiro) | ✅ Fully Supported |
 
 **Key Benefit:** Write your agents and skills once, use them everywhere. The `open-agents/` folder and skill definitions are tool-agnostic.
 

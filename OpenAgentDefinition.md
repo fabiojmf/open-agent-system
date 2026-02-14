@@ -377,11 +377,13 @@ constructing the ffmpeg commands manually each time.
 
 ---
 
-## 4.1. Skills - Progressive Context Loading (Kiro 1.24+)
+## 4.1. Skills - Progressive Context Loading
 
 ### What Are Skills?
 
-Skills are a resource type designed for **progressive context loading**. Instead of loading entire agent definitions or documentation at startup, skills load only metadata (name and description) initially. Full content loads on demand when the agent determines it's needed.
+Skills are portable instruction packages that follow the open [Agent Skills](https://agentskills.io) standard. They bundle instructions, scripts, and templates into reusable packages that load on demand when relevant to the current task.
+
+Skills work across Kiro, Claude Code, Gemini CLI, and any tool that supports the Agent Skills standard.
 
 ### Why Use Skills?
 
@@ -389,12 +391,47 @@ Skills are a resource type designed for **progressive context loading**. Instead
 
 **Solution:** Skills keep context lean by loading metadata first, full content only when needed.
 
+### Skills vs Steering vs Powers (Kiro)
+
+| Type | Scope | Loading | Use Case |
+|------|-------|---------|----------|
+| **Skills** | Portable (open standard) | On-demand, progressive | Reusable workflows, shareable across tools |
+| **Steering** | Kiro-specific | always/auto/fileMatch/manual (IDE); always (CLI) | Project standards, conventions |
+| **Powers** | Kiro-specific | Dynamic, context-based | MCP integrations with bundled knowledge |
+
+Use **skills** for portable workflows you want to share or import. Use **steering** for project-specific conventions. Use **powers** for MCP tool integrations.
+
 ### Skills vs File Resources
 
 | Type | Loading | Use Case |
 |------|---------|----------|
 | `file://` | Full content at startup | Critical info needed in every conversation |
 | `skill://` | Metadata at startup, content on demand | Large docs, agent definitions, optional context |
+
+### Skill Location
+
+**Kiro IDE auto-discovery:**
+- Workspace: `.kiro/skills/{skill-name}/SKILL.md`
+- Global: `~/.kiro/skills/{skill-name}/SKILL.md`
+
+Workspace skills override global skills with the same name.
+
+**Kiro CLI / Claude Code / Gemini CLI:**
+Skills can live anywhere when referenced via `skill://` URIs in agent configuration or auto-detected by the tool.
+
+**Recommended for this system:** Place skills in `.kiro/skills/` for Kiro IDE compatibility. Reference them in agent configs with `skill://` URIs:
+
+```json
+{
+  "resources": [
+    "file://.kiro/steering/**/*.md",
+    "skill://.kiro/skills/**/SKILL.md",
+    "skill://../../open-agents/agents/*.md"
+  ]
+}
+```
+
+> **Important (Kiro CLI):** Custom agents don't auto-include steering files. Always add `file://.kiro/steering/**/*.md` to `resources`.
 
 ### Creating Skill Files
 
@@ -411,11 +448,31 @@ description: Research historical topics and produce comprehensive markdown artic
 [... full agent definition ...]
 ```
 
+**Name rules:**
+- Must match the parent directory name (folder `researcher-agent/` → `name: researcher-agent`)
+- Lowercase letters, numbers, and hyphens only
+- Max 64 characters
+- Must not start or end with a hyphen
+- Must not contain consecutive hyphens (`--`)
+
 **Critical:** The `description` field is the **primary triggering mechanism** — the body is only loaded after triggering. Write descriptions that include:
 - **What** the skill does
 - **When** to use it (trigger contexts, task types)
 - **Keywords** users might mention
 - Max 1024 characters. See Section 10.2 for detailed guidance.
+
+### Frontmatter Fields
+
+| Field | Required | Constraints |
+|-------|----------|-------------|
+| `name` | Yes | Must match folder name. Lowercase, numbers, hyphens. Max 64 chars. |
+| `description` | Yes | Max 1024 chars. Include WHAT and WHEN. |
+| `license` | No | License name or reference to bundled license file |
+| `compatibility` | No | Environment requirements, max 500 chars |
+| `metadata` | No | Key-value pairs (author, version, etc.) |
+| `allowed-tools` | No | Space-delimited list of pre-approved tools (experimental) |
+
+See the [full specification](https://agentskills.io/specification) for detailed field constraints.
 
 ### Using Skills in Agent Configuration
 
@@ -427,8 +484,9 @@ Reference skills using `skill://` URIs in the `resources` field:
   "description": "Historical research specialist",
   "prompt": "file://../../open-agents/agents/researcher.md",
   "resources": [
-    "skill://../../open-agents/agents/*.md",
-    "skill://../../open-agents/context/*.md"
+    "file://.kiro/steering/**/*.md",
+    "skill://.kiro/skills/**/SKILL.md",
+    "skill://../../open-agents/agents/*.md"
   ],
   "tools": ["read", "write", "web_search"]
 }
@@ -438,26 +496,27 @@ Reference skills using `skill://` URIs in the `resources` field:
 
 **Single skill:**
 ```json
-"resources": ["skill://../../open-agents/agents/researcher.md"]
+"resources": ["skill://.kiro/skills/researcher-agent/SKILL.md"]
 ```
 
-**All agents as skills:**
+**All skills in .kiro/skills/:**
+```json
+"resources": ["skill://.kiro/skills/**/SKILL.md"]
+```
+
+**Agent definitions as skills:**
 ```json
 "resources": ["skill://../../open-agents/agents/*.md"]
 ```
 
-**Nested skills:**
-```json
-"resources": ["skill://../../open-agents/**/SKILL.md"]
-```
-
 ### Best Practices
 
-1. **Use skills for large content** - Agent definitions, detailed specs, extensive documentation
-2. **Use file:// for critical context** - Information needed in every conversation
-3. **Write specific descriptions** - Help the agent determine when to load content
-4. **Keep steering lean** - Move large content from `.kiro/steering/` to skills
-5. **Maintain single source** - Keep agents in `open-agents/agents/`, reference as skills
+1. **Place skills in `.kiro/skills/`** - For Kiro IDE auto-discovery
+2. **Use skills for large content** - Agent definitions, detailed specs, extensive documentation
+3. **Use file:// for critical context** - Information needed in every conversation
+4. **Write specific descriptions** - Help the agent determine when to load content
+5. **Keep steering lean** - Move large content from `.kiro/steering/` to skills
+6. **Maintain single source** - Keep agents in `open-agents/agents/`, reference as skills
 
 ### Example: Converting Agents to Skills
 
@@ -478,6 +537,7 @@ All agents loaded at startup, wasting context.
 {
   "prompt": "file://../../open-agents/agents/researcher.md",
   "resources": [
+    "file://.kiro/steering/**/*.md",
     "skill://../../open-agents/agents/*.md"
   ]
 }
@@ -585,7 +645,7 @@ Add knowledge bases in the `resources` field:
 {
   "name": "project-agent",
   "resources": [
-    "file://.kiro/steering/agents.md",
+    "file://.kiro/steering/**/*.md",
     "skill://../../open-agents/agents/*.md",
     {
       "type": "knowledgeBase",
@@ -598,7 +658,7 @@ Add knowledge bases in the `resources` field:
 ```
 
 **Strategy:**
-- **file://** - Critical pointer to agent system (always loaded)
+- **file://** - Steering files + critical pointers (always loaded)
 - **skill://** - Agent definitions (load on demand)
 - **knowledgeBase** - Large documentation (search when needed)
 
@@ -1015,15 +1075,27 @@ After integration, confirm:
 | Claude Code | `CLAUDE.md` | Root file, auto-read |
 | Codex | `AGENTS.md` | Root file, auto-read |
 | Gemini CLI | `GEMINI.md` | Root file, auto-read |
-| **Kiro CLI** | `.kiro/steering/*.md` | Steering folder, always included |
+| **Kiro** | `.kiro/steering/*.md` | Steering folder (IDE supports inclusion modes; CLI always loads all) |
 
-**Important:** Unlike single entry point files, Kiro uses a **folder of steering files**. Additionally, Kiro automatically imports `AGENTS.md` files from the workspace root.
+**Important:** Kiro also automatically imports `AGENTS.md` files from the workspace root. This means your `AGENTS.md` works for both Codex and Kiro.
 
 ### Setting Up the Steering Folder
 
 ```bash
 mkdir -p .kiro/steering
 ```
+
+### Foundational Steering Files
+
+These files provide Kiro with essential project context and are included in every interaction by default:
+
+| File | Purpose |
+|------|---------|
+| `product.md` | Product's purpose, target users, key features |
+| `tech.md` | Frameworks, libraries, technical constraints |
+| `structure.md` | File organization, naming conventions |
+
+See the `Templates/` folder for ready-to-use templates.
 
 ### The Agents Steering File
 
@@ -1051,27 +1123,112 @@ When a user request matches an agent's domain:
 3. Save outputs to the designated `open-agents/output-*/` folders
 ```
 
-### Foundational Steering Files (Optional but Recommended)
+### Inclusion Modes (Kiro IDE Only)
 
-These files provide Kiro with essential project context:
+> **Note:** Inclusion modes are a **Kiro IDE** feature. In Kiro CLI, all steering files in `.kiro/steering/` are always loaded automatically (unless using custom agents, where you must explicitly include them via `resources`).
 
-| File | Purpose |
-|------|---------|
-| `product.md` | Product's purpose, target users, key features |
-| `tech.md` | Frameworks, libraries, technical constraints |
-| `structure.md` | File organization, naming conventions |
+Steering files support YAML frontmatter to control when they're loaded. This optimizes context usage by loading guidance only when relevant.
 
-See the `Templates/` folder for ready-to-use templates.
+#### Always (Default)
+
+```yaml
+---
+inclusion: always
+---
+```
+
+Loaded into every interaction. Use for core standards: tech stack, coding conventions, security policies. **No frontmatter needed** — `always` is the default.
+
+#### File Match
+
+```yaml
+---
+inclusion: fileMatch
+fileMatchPattern: "components/**/*.tsx"
+---
+```
+
+Loaded only when working with files matching the pattern. Supports arrays:
+
+```yaml
+---
+inclusion: fileMatch
+fileMatchPattern: ["**/*.ts", "**/*.tsx", "**/tsconfig.*.json"]
+---
+```
+
+Common patterns:
+- `"*.tsx"` — React components
+- `"app/api/**/*"` — API routes
+- `"**/*.test.*"` — Test files
+- `["**/*.ts", "**/*.tsx"]` — All TypeScript
+
+**Best for:** Domain-specific standards that only apply to certain file types.
+
+#### Manual
+
+```yaml
+---
+inclusion: manual
+---
+```
+
+Available on-demand by typing `#steering-file-name` in chat.
+
+**Best for:** Troubleshooting guides, migration procedures, or context-heavy docs needed occasionally.
+
+#### Auto
+
+```yaml
+---
+inclusion: auto
+name: api-design
+description: REST API design patterns and conventions. Use when creating or modifying API endpoints.
+---
+```
+
+Loaded when your request matches the description — works similarly to skills.
+
+**Best for:** Context-heavy guidance that should only load when relevant.
+
+### File References (Kiro IDE Only)
+
+> **Note:** File references are a **Kiro IDE** feature and are not supported in Kiro CLI.
+
+Link to live workspace files in steering to keep context current:
+
+```markdown
+#[[file:api/openapi.yaml]]
+#[[file:components/ui/button.tsx]]
+#[[file:.env.example]]
+```
 
 ### Workspace vs Global Steering
 
 | Scope | Location | Use For |
 |-------|----------|---------|
-| Workspace | `.kiro/steering/` (project root) | Project-specific agents |
-| Global | `~/.kiro/steering/` (home) | Universal preferences |
-| Team | Downloaded to `~/.kiro/steering/` | Organization-wide standards |
+| Workspace | `.kiro/steering/` (project root) | Project-specific agents and standards |
+| Global | `~/.kiro/steering/` (home) | Universal preferences across all projects |
+| Team | Downloaded to `~/.kiro/steering/` | Organization-wide standards (via MDM/Group Policy) |
 
 **Priority:** Workspace steering overrides global steering when they conflict.
+
+### Powers (MCP Integrations)
+
+For projects that use MCP servers (Supabase, Stripe, Datadog, etc.), Kiro offers **Powers** — bundles that combine MCP tools with knowledge and workflows.
+
+A power contains:
+- `POWER.md` — Steering that tells the agent what MCP tools are available and when to use them
+- MCP server configuration
+- Optional steering/hooks
+
+Powers activate dynamically based on keywords in your conversation, solving the context overload problem of loading all MCP tools at once.
+
+**When to use powers vs skills:**
+- **Powers** — When you need MCP tool integrations with guided workflows
+- **Skills** — When you need portable instruction packages without external tools
+
+See [Kiro Powers documentation](https://kiro.dev/docs/powers/) for details.
 
 ### The .kiro/agents/ Folder (Driver Pattern)
 
@@ -1107,6 +1264,7 @@ Create a `.json` file for each agent in `.kiro/agents/`:
   "tools": ["read", "write", "shell"],
   "allowedTools": ["read", "knowledge"],
   "resources": [
+    "file://.kiro/steering/**/*.md",
     "skill://../../open-agents/agents/*.md"
   ]
 }
@@ -1174,23 +1332,23 @@ Hooks allow you to run commands at specific trigger points during agent lifecycl
 
 #### Important: Tool Names for Hooks
 
-Hooks use **internal tool names**, not simplified names:
+Hook matchers support both **canonical tool names** and their **aliases**:
 
-| Simplified | Internal (use in hooks) |
-|------------|-------------------------|
+| Alias (simplified) | Canonical (internal) |
+|--------------------|----------------------|
 | `shell` | `execute_bash` |
 | `write` | `fs_write` |
 | `read` | `fs_read` |
 | `aws` | `use_aws` |
 
-See [Kiro Built-in Tools documentation](https://kiro.dev/docs/cli/reference/built-in-tools) for complete list.
+Use whichever you prefer. See [Kiro Built-in Tools documentation](https://kiro.dev/docs/cli/reference/built-in-tools) for complete list.
 
 ### Best Practices for Kiro Integration
 
 1. **Keep Files Focused** - One domain per file
 2. **Use Clear Names** - `agents.md`, `api-standards.md`, `testing-patterns.md`
 3. **Include Context** - Explain *why* decisions were made
-4. **Reference Files** - Use `#[[file:path/to/example.tsx]]` syntax
+4. **Reference Files** - Use `#[[file:path/to/example.tsx]]` syntax (Kiro IDE only)
 5. **Security First** - Never include API keys or secrets
 6. **Maintain Regularly** - Update after architecture changes
 
@@ -1261,7 +1419,7 @@ description: Comprehensive document creation, editing, and analysis with support
 |-------|----------|-------------|
 | `name` | Yes | Lowercase, hyphens allowed, max 64 chars |
 | `description` | Yes | Max 1024 chars, must include WHAT and WHEN |
-| `allowed-tools` | No | Restrict tool access (e.g., `Bash, Read, Grep`) |
+| `allowed-tools` | No | Restrict tool access — experimental, from [agentskills.io](https://agentskills.io/specification) (e.g., `Bash, Read, Grep`) |
 
 #### Writing the Description (Critical)
 
@@ -1356,52 +1514,58 @@ cloud-deploy/
 
 ```bash
 # Create skill structure
-python scripts/init_skill.py --path ./skills/my-skill
+python scripts/init_skill.py --path .kiro/skills/my-skill
 
 # Edit SKILL.md (frontmatter + instructions)
 # Add scripts, references, or assets as needed
 # Delete example files you don't need
 
-# Validate
-python scripts/quick_validate.py ./skills/my-skill
+# Validate (official tool from Agent Skills spec)
+npx skills-ref validate .kiro/skills/my-skill
+
+# Or validate with bundled script
+python scripts/quick_validate.py .kiro/skills/my-skill
 
 # Package for distribution
-python scripts/package_skill.py ./skills/my-skill
+python scripts/package_skill.py .kiro/skills/my-skill
 ```
 
 ### 10.5. Integration
 
-#### Kiro CLI
+#### Kiro (IDE + CLI)
 
-Add to `.kiro/agents/{agent}.json`:
+Skills in `.kiro/skills/` are auto-discovered by Kiro IDE. For CLI agent configs:
 ```json
 {
   "resources": [
-    "skill://./skills/**/SKILL.md"
+    "file://.kiro/steering/**/*.md",
+    "skill://.kiro/skills/**/SKILL.md"
   ]
 }
 ```
 
 #### Claude Code
 
-Skills work automatically when in project directory.
+Skills in `.claude/skills/` or project directory work automatically.
 
 ### 10.6. Best Practices
 
 1. **Concise is key** — Only add what the agent doesn't already know
 2. **Description is the trigger** — Include what, when, file types, keywords (max 1024 chars)
-3. **Match freedom to fragility** — Scripts for fragile ops, text for flexible ones
-4. **No duplication** — Content lives in SKILL.md OR references, never both
-5. **Progressive disclosure** — Keep SKILL.md under 500 lines / 5k tokens
-6. **Imperative style** — Write instructions as commands, not descriptions
-7. **Start with evaluation** — Identify agent gaps on real tasks, then build skills to fill them
-8. **Iterate with usage** — Use the skill, observe struggles, update, repeat
-9. **Validate before sharing** — Run `package_skill.py`
+3. **Name must match folder** — Folder `my-skill/` → `name: my-skill`
+4. **Match freedom to fragility** — Scripts for fragile ops, text for flexible ones
+5. **No duplication** — Content lives in SKILL.md OR references, never both
+6. **Progressive disclosure** — Keep SKILL.md under 500 lines / 5k tokens
+7. **Imperative style** — Write instructions as commands, not descriptions
+8. **Start with evaluation** — Identify agent gaps on real tasks, then build skills to fill them
+9. **Iterate with usage** — Use the skill, observe struggles, update, repeat
+10. **Validate before sharing** — Run `skills-ref validate` or `package_skill.py`
 
 ### 10.7. Validation Rules
 
 - ✅ YAML frontmatter with `name` and `description`
-- ✅ `name`: lowercase, hyphens, max 64 chars
+- ✅ `name`: lowercase, numbers, hyphens. Max 64 chars. Must match folder name.
+- ✅ `name`: no start/end hyphen, no consecutive hyphens (`--`)
 - ✅ `description`: 50–1024 chars, includes WHAT and WHEN
 - ✅ No TODO placeholders
 - ✅ No duplicate content between SKILL.md and references

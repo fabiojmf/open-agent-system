@@ -60,7 +60,7 @@ Would you like me to create all, specific ones, or custom?
 #### Folder Structure
 
 ```
-skills/{skill-name}/
+.kiro/skills/{skill-name}/
 ├── SKILL.md              # Required
 ├── scripts/              # Only if deterministic code needed
 ├── references/           # Only if extensive docs needed
@@ -74,7 +74,7 @@ Do NOT create: README.md, INSTALLATION_GUIDE.md, QUICK_REFERENCE.md, CHANGELOG.m
 **Frontmatter — the description is critical:**
 
 ```yaml
-name: lowercase-hyphen-name  # max 64 chars
+name: lowercase-hyphen-name  # max 64 chars, MUST match folder name
 description: >
   [WHAT it does] with [specific capabilities].
   Use when [trigger context 1], [trigger context 2],
@@ -138,7 +138,7 @@ Check before saving:
 ### 5. Report
 
 ```
-✅ Skill created: skills/{skill-name}/
+✅ Skill created: .kiro/skills/{skill-name}/
 
 📝 Description: {Brief summary}
 🎯 Triggers: {key trigger words}
@@ -148,19 +148,24 @@ Check before saving:
 
 ## Naming Conventions
 
+- Must match folder name: folder `my-skill/` → `name: my-skill`
 - Hyphen-case: `backend-java-spring`, `mobile-ui-components`
 - Be specific: `react-native-navigation` not `navigation`
 - Include technology: `python-fastapi-crud` not `crud`
 - Max 64 characters
+- No start/end hyphen, no consecutive hyphens (`--`)
 
 ## Output Location
 
-All skills go to `skills/{skill-name}/`.
+All skills go to `.kiro/skills/{skill-name}/`.
 
 After creating, remind user to add to `.kiro/agents/{agent}.json`:
 ```json
 {
-  "resources": ["skill://../../skills/**/SKILL.md"]
+  "resources": [
+    "file://.kiro/steering/**/*.md",
+    "skill://.kiro/skills/**/SKILL.md"
+  ]
 }
 ```
 

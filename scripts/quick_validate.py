@@ -36,7 +36,7 @@ def validate_skill(skill_path):
         return False, f"Invalid YAML in frontmatter: {e}"
     
     # Define allowed properties
-    ALLOWED_PROPERTIES = {'name', 'description', 'license', 'allowed-tools', 'metadata'}
+    ALLOWED_PROPERTIES = {'name', 'description', 'license', 'compatibility', 'allowed-tools', 'metadata'}
     
     # Check for unexpected properties
     unexpected_keys = set(frontmatter.keys()) - ALLOWED_PROPERTIES
@@ -67,6 +67,9 @@ def validate_skill(skill_path):
         # Check name length
         if len(name) > 64:
             return False, f"Name too long ({len(name)} chars). Maximum is 64 characters"
+        # Check name matches folder
+        if name != skill_path.name:
+            return False, f"Name '{name}' must match folder name '{skill_path.name}'"
     
     # Validate description
     description = frontmatter.get('description', '')
@@ -84,6 +87,10 @@ def validate_skill(skill_path):
         # Check minimum length (reasonable minimum)
         if len(description) < 50:
             return False, f"Description too short ({len(description)} chars). Minimum is 50 characters"
+    # Check for TODO placeholders
+    body = content[match.end():]
+    if re.search(r'\bTODO\b', body, re.IGNORECASE):
+        return False, "SKILL.md body contains TODO placeholders — all content must be complete"
     
     return True, "✅ Skill is valid!"
 

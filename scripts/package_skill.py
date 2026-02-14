@@ -42,7 +42,7 @@ def validate_skill(skill_path: Path) -> list[str]:
         return errors
     
     # Check allowed properties
-    ALLOWED_PROPERTIES = {'name', 'description', 'license', 'allowed-tools', 'metadata'}
+    ALLOWED_PROPERTIES = {'name', 'description', 'license', 'compatibility', 'allowed-tools', 'metadata'}
     unexpected_keys = set(frontmatter.keys()) - ALLOWED_PROPERTIES
     if unexpected_keys:
         errors.append(
@@ -71,6 +71,9 @@ def validate_skill(skill_path: Path) -> list[str]:
                     errors.append(f"Name '{name}' cannot start/end with hyphen or have consecutive hyphens")
                 if len(name) > 64:
                     errors.append(f"Name too long ({len(name)} chars). Maximum: 64")
+                # Check name matches folder
+                if name != skill_path.name:
+                    errors.append(f"Name '{name}' must match folder name '{skill_path.name}'")
     
     # Validate description
     if 'description' in frontmatter:
@@ -86,6 +89,11 @@ def validate_skill(skill_path: Path) -> list[str]:
                     errors.append(f"Description too long ({len(description)} chars). Maximum: 1024")
                 if len(description) < 50:
                     errors.append(f"Description too short ({len(description)} chars). Minimum: 50")
+    
+    # Check for TODO placeholders
+    body = content[match.end():]
+    if re.search(r'\bTODO\b', body, re.IGNORECASE):
+        errors.append("SKILL.md body contains TODO placeholders — all content must be complete")
     
     return errors
 
