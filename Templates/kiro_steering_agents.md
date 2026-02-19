@@ -1,6 +1,7 @@
 # Open Agent System
 
 **CRITICAL: Read `open-agents/INSTRUCTIONS.md` immediately.**
+**At session start:** Review `open-agents/memory/lessons.md` if it exists.
 
 This project uses an **Open Agent System** for specialized, non-coding tasks.
 

@@ -174,6 +174,9 @@ existing-project/
     │   ├── transformer.md
     │   └── publisher.md
     │
+    ├── memory/                  # Persistent agent memory
+    │   └── lessons.md           # Corrections and learned patterns
+    │
     ├── tools/                   # Agent-created scripts (optional)
     │   └── (scripts created by agents)
     │
@@ -201,6 +204,7 @@ existing-project/
 | Folder | Purpose | Example Contents |
 |--------|---------|------------------|
 | `agents/` | Agent definitions | `researcher.md`, `transformer.md` |
+| `memory/` | Persistent agent memory | `lessons.md` (corrections and learned patterns) |
 | `tools/` | Scripts created by agents | `compress_audio.sh`, `resize_image.py` |
 | `source/` | Raw inputs from user | Notes, stubs, requests, reference materials |
 | `output-drafts/` | First processing stage | Drafts, initial transforms, rough outputs |
@@ -742,6 +746,7 @@ The same file should exist at `.gemini/commands/history/research.md`.
 - Lists all available agents
 - Defines routing logic
 - Documents workflow
+- Establishes operating principles (planning, verification, quality standards, self-improvement)
 - Sets behavioral rules (like git commit protocol)
 
 ### Required Sections
@@ -788,6 +793,42 @@ The same file should exist at `.gemini/commands/history/research.md`.
 |--------------|--------------|
 | "[trigger phrase]" | [Agent name] |
 | "[another phrase]" | [Agent name] |
+
+---
+
+## Operating Principles
+
+### Planning Discipline
+- Create a plan before executing any non-trivial task (3+ steps or architectural decisions)
+- If execution diverges from the plan, stop and re-plan — don't push through
+- Plan verification steps, not just implementation steps
+
+### Autonomous Execution
+- When given a bug report or failing test: investigate and fix it without hand-holding
+- Point at logs, errors, and root causes — then resolve them
+- Minimize context switching required from the user
+
+### Verification Before Done
+- Never mark a task complete without demonstrating it works
+- Run tests, check logs, verify the build
+- Ask: "Would a senior engineer approve this?"
+
+### Quality Standards
+- Make every change as simple as possible — impact minimal code
+- Find root causes — no temporary fixes
+- Changes should only touch what's necessary
+- For non-trivial changes, pause and consider if there's a more elegant approach
+- Skip this for simple, obvious fixes — don't over-engineer
+
+### Context Management
+- Keep the main context lean — use progressive loading
+- Offload research and parallel analysis to subagents when available
+- One focused task per subagent
+
+### Self-Improvement Loop
+- After any correction from the user, update `open-agents/memory/lessons.md`
+- Write the lesson as a rule that prevents the same mistake
+- Review `open-agents/memory/lessons.md` at session start if it exists
 
 ---
 
@@ -857,6 +898,36 @@ A common flow through this system:
 Agents can be used independently or in sequence.
 ```
 
+### Operating Principles
+The Operating Principles section defines behavioral rules that apply across all agents. These are not agent-specific—they govern how the AI assistant works in general within this system.
+
+Key sections:
+- **Planning Discipline** — Prevents rushing into complex tasks without a plan
+- **Autonomous Execution** — Reduces back-and-forth; the AI investigates and fixes issues independently
+- **Verification Before Done** — Ensures tasks are proven complete, not just declared complete
+- **Quality Standards** — Sets the bar for code and content quality
+- **Context Management** — Keeps the context window lean via progressive loading and subagents
+- **Self-Improvement Loop** — Creates persistent memory via `open-agents/memory/lessons.md`
+
+The Self-Improvement Loop is particularly important: after any correction from the user, the AI updates `lessons.md` with the mistake and a rule to prevent it. This file is reviewed at session start, creating institutional memory across conversations.
+
+### The lessons.md Format
+The `open-agents/memory/lessons.md` file uses a simple, scannable structure:
+
+```markdown
+# Lessons Learned
+
+## [Project Name]
+
+### YYYY-MM-DD — [Brief description]
+**Mistake:** [What went wrong]
+**Rule:** [The rule to prevent it]
+```
+
+Dated entries, newest first. Each entry captures the concrete mistake and the derived rule. No prose—just patterns the AI can scan quickly at session start.
+
+> **Note:** This replaces the `tasks/lessons.md` pattern common in the Claude Code community. By placing it in `open-agents/memory/`, the file stays contained within the agent system, is portable across projects, and doesn't pollute the project root.
+
 ---
 
 ## 7. Operations Guide
@@ -868,7 +939,7 @@ Follow these steps to create a system from scratch:
 
 ```bash
 # Create open-agents structure
-mkdir -p open-agents/{agents,tools,source,output-drafts,output-refined,output-final}
+mkdir -p open-agents/{agents,memory,tools,source,output-drafts,output-refined,output-final}
 
 # Create command folders for Claude and Gemini
 mkdir -p .claude/commands/{domain}
@@ -891,6 +962,7 @@ This folder contains an **Open Agent System**—a collection of markdown-defined
 
 - `INSTRUCTIONS.md` — Full documentation, agent index, and routing logic
 - `agents/` — Individual agent definitions
+- `memory/` — Persistent agent memory (lessons learned)
 - `source/` — Input materials
 - `output-*/` — Processing stages
 
@@ -937,6 +1009,7 @@ Create or update the following entry point files at project root:
 # Open Agent System
 
 **CRITICAL: Read `open-agents/INSTRUCTIONS.md` immediately.**
+**At session start:** Review `open-agents/memory/lessons.md` if it exists.
 
 This project uses an Open Agent System for specialized, non-coding tasks.
 When the user invokes an agent workflow, follow the routing and instructions defined in the INSTRUCTIONS.md file.
@@ -1031,7 +1104,7 @@ This project includes an **Open Agent System** for [brief description of what th
 
 ### Step-by-Step Integration
 
-1. **Create the open-agents/ folder:** `mkdir -p open-agents/{agents,tools,source,output-drafts,output-refined,output-final}`
+1. **Create the open-agents/ folder:** `mkdir -p open-agents/{agents,memory,tools,source,output-drafts,output-refined,output-final}`
 2. **Create open-agents/README.md:** Human-readable context
 3. **Create open-agents/INSTRUCTIONS.md:** Full instructions file
 4. **Create agent files:** Add agents to `open-agents/agents/`
@@ -1048,11 +1121,12 @@ This project includes an **Open Agent System** for [brief description of what th
 After integration, confirm:
 
 1. `open-agents/README.md` exists and is human-readable
-2. `open-agents/INSTRUCTIONS.md` lists all agents
+2. `open-agents/INSTRUCTIONS.md` lists all agents and includes Operating Principles
 3. Entry point files (`CLAUDE.md`, etc.) have the Open Agents section
 4. `.kiro/steering/agents.md` exists (for Kiro compatibility)
 5. Slash commands exist in `.claude/commands/` and `.gemini/commands/`
 6. Running `/your-domain command` invokes the correct agent
+7. `open-agents/memory/` folder exists (lessons.md is created on first correction)
 
 ---
 
@@ -1105,6 +1179,7 @@ Create `.kiro/steering/agents.md`:
 # Open Agent System
 
 **CRITICAL: Read `open-agents/INSTRUCTIONS.md` immediately.**
+**At session start:** Review `open-agents/memory/lessons.md` if it exists.
 
 This project uses an **Open Agent System** for specialized, non-coding tasks.
 
@@ -1619,6 +1694,9 @@ my-existing-project/
     │   ├── html_generator.md
     │   └── data_extractor.md
     │
+    ├── memory/
+    │   └── lessons.md               # Persistent agent memory
+    │
     ├── source/
     │   ├── disney_animation.md      # Stub file
     │   └── video_games.md           # Stub file
@@ -1667,6 +1745,7 @@ my-existing-project/
 # Open Agent System
 
 **CRITICAL: Read `open-agents/INSTRUCTIONS.md` immediately.**
+**At session start:** Review `open-agents/memory/lessons.md` if it exists.
 
 This project includes an Open Agent System for historical research.
 
@@ -1742,6 +1821,32 @@ An open agent system for researching historical topics.
 | "Create HTML from this" | HTML Generator |
 | "Extract data into JSON" | Data Extractor |
 | "Create all outputs" | Researcher → HTML → Extractor |
+
+---
+
+## Operating Principles
+
+### Planning Discipline
+- Create a plan before executing any non-trivial task (3+ steps or architectural decisions)
+- If execution diverges from the plan, stop and re-plan — don't push through
+
+### Autonomous Execution
+- When given a bug report or failing test: investigate and fix it without hand-holding
+- Minimize context switching required from the user
+
+### Verification Before Done
+- Never mark a task complete without demonstrating it works
+- Run tests, check logs, verify the build
+
+### Quality Standards
+- Make every change as simple as possible — impact minimal code
+- Find root causes — no temporary fixes
+- For non-trivial changes, consider if there's a more elegant approach
+
+### Self-Improvement Loop
+- After any correction from the user, update `open-agents/memory/lessons.md`
+- Write the lesson as a rule that prevents the same mistake
+- Review `open-agents/memory/lessons.md` at session start if it exists
 ```
 
 ---
@@ -1757,7 +1862,8 @@ An Open Agent System consists of:
 5. **Commands** (`.claude/commands/`, `.gemini/commands/`) for explicit invocation
 6. **Kiro steering files** (`.kiro/steering/`) for Kiro CLI compatibility
 7. **Structured folders** (`source/`, `output-*/`) for organized workflow
-8. **Entry point files** (CLAUDE.md, AGENTS.md, GEMINI.md) with the read directive
+8. **Persistent memory** (`memory/`) for lessons learned across sessions
+9. **Entry point files** (CLAUDE.md, AGENTS.md, GEMINI.md) with the read directive
 
 **Critical:** Entry points must contain the mandatory read directive at the top. Create these files if they don't exist.
 
