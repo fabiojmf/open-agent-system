@@ -114,6 +114,8 @@ A minimal entry point file is just:
 
 If the project already has these files, add the directive at the top.
 
+> **Kiro CLI Note:** Kiro steering files are loaded directly into context — their content is guaranteed to be read. Instead of a text directive that relies on AI compliance, the Kiro steering file (`.kiro/steering/agents.md`) should contain the actual routing and operating principles. See [Section 9: Kiro CLI Integration](#9-kiro-cli-integration) for details. For custom agents, include `INSTRUCTIONS.md` as a `file://` resource in the agent configuration.
+
 ### Why This Pattern?
 **Progressive Disclosure:** Agent definitions can be large (hundreds of lines). Loading all agents into context at once wastes tokens and creates noise. Instead:
 
@@ -1004,15 +1006,28 @@ Create or update the following entry point files at project root:
 **CRITICAL: Read `open-agents/INSTRUCTIONS.md` immediately.**
 ```
 
-**For Kiro CLI** - Create `.kiro/steering/agents.md`:
+**For Kiro CLI** - Create `.kiro/steering/agents.md` with direct content (see `Templates/kiro_steering_agents.md`):
 ```markdown
 # Open Agent System
 
-**CRITICAL: Read `open-agents/INSTRUCTIONS.md` immediately.**
-**At session start:** Review `open-agents/memory/lessons.md` if it exists.
+This project uses an **Open Agent System** for specialized, non-coding tasks.
 
-This project uses an Open Agent System for specialized, non-coding tasks.
-When the user invokes an agent workflow, follow the routing and instructions defined in the INSTRUCTIONS.md file.
+## Available Agents
+
+| Agent | Purpose | Trigger Phrase |
+|-------|---------|----------------|
+| [Agent 1] | [Brief description] | "[typical user request]" |
+
+## Routing
+
+When a user request matches an agent's domain:
+1. Read the full agent definition from `open-agents/agents/{agent}.md`
+2. Follow the agent's specified behaviors and output format
+3. Save outputs to the designated `open-agents/output-*/` folders
+
+## Operating Principles
+[Include planning, verification, quality, and self-improvement rules.
+See Templates/kiro_steering_agents.md for the full template.]
 ```
 
 ### Adding an Agent to an Existing System
@@ -1175,11 +1190,10 @@ See the `Templates/` folder for ready-to-use templates.
 
 Create `.kiro/steering/agents.md`:
 
+> **Important:** Kiro CLI steering files are loaded directly into context — their content is guaranteed to be read. Unlike `CLAUDE.md` or `AGENTS.md`, where text directives like "Read file X" rely on AI compliance, steering file content is always present. For this reason, the Kiro steering file should contain the actual routing and operating principles rather than a pointer to `INSTRUCTIONS.md`. The `INSTRUCTIONS.md` file remains the source of truth for non-Kiro tools (Claude Code, Gemini CLI, Codex).
+
 ```markdown
 # Open Agent System
-
-**CRITICAL: Read `open-agents/INSTRUCTIONS.md` immediately.**
-**At session start:** Review `open-agents/memory/lessons.md` if it exists.
 
 This project uses an **Open Agent System** for specialized, non-coding tasks.
 
@@ -1187,15 +1201,39 @@ This project uses an **Open Agent System** for specialized, non-coding tasks.
 
 | Agent | Purpose | Trigger Phrase |
 |-------|---------|----------------|
-| [Agent 1] | [Brief description] | "[typical user request]" |
-| [Agent 2] | [Brief description] | "[typical user request]" |
+| [Agent 1] (`agents/{name}.md`) | [Brief description] | "[typical user request]" |
+| [Agent 2] (`agents/{name}.md`) | [Brief description] | "[typical user request]" |
 
-## How to Use
+## Routing
 
 When a user request matches an agent's domain:
 1. Read the full agent definition from `open-agents/agents/{agent}.md`
 2. Follow the agent's specified behaviors and output format
 3. Save outputs to the designated `open-agents/output-*/` folders
+
+## Operating Principles
+
+### Planning Discipline
+- Create a plan before executing any non-trivial task (3+ steps or architectural decisions)
+- If execution diverges from the plan, stop and re-plan — don't push through
+
+### Autonomous Execution
+- When given a bug report or failing test: investigate and fix it without hand-holding
+- Minimize context switching required from the user
+
+### Verification Before Done
+- Never mark a task complete without demonstrating it works
+- Run tests, check logs, verify the build
+
+### Quality Standards
+- Make every change as simple as possible — impact minimal code
+- Find root causes — no temporary fixes
+- For non-trivial changes, consider if there's a more elegant approach
+
+### Self-Improvement Loop
+- After any correction from the user, update `open-agents/memory/lessons.md`
+- Write the lesson as a rule that prevents the same mistake
+- Review `open-agents/memory/lessons.md` at session start if it exists
 ```
 
 ### Inclusion Modes (Kiro IDE Only)
@@ -1340,6 +1378,7 @@ Create a `.json` file for each agent in `.kiro/agents/`:
   "allowedTools": ["read", "knowledge"],
   "resources": [
     "file://.kiro/steering/**/*.md",
+    "file://../../open-agents/INSTRUCTIONS.md",
     "skill://../../open-agents/agents/*.md"
   ]
 }
@@ -1744,20 +1783,37 @@ my-existing-project/
 ```markdown
 # Open Agent System
 
-**CRITICAL: Read `open-agents/INSTRUCTIONS.md` immediately.**
-**At session start:** Review `open-agents/memory/lessons.md` if it exists.
-
 This project includes an Open Agent System for historical research.
 
 ## Available Agents
 
 | Agent | Purpose | Trigger |
 |-------|---------|---------|
-| Researcher | Create comprehensive markdown articles | "research [topic]" |
-| HTML Generator | Transform articles into themed webpages | "create HTML from [file]" |
-| Data Extractor | Extract structured JSON from articles | "extract data from [file]" |
+| Researcher (`agents/researcher.md`) | Create comprehensive markdown articles | "research [topic]" |
+| HTML Generator (`agents/html_generator.md`) | Transform articles into themed webpages | "create HTML from [file]" |
+| Data Extractor (`agents/data_extractor.md`) | Extract structured JSON from articles | "extract data from [file]" |
 
-When the user invokes any agent workflow, follow the routing and instructions defined in `open-agents/INSTRUCTIONS.md`.
+## Routing
+
+When a user request matches an agent's domain:
+1. Read the full agent definition from `open-agents/agents/{agent}.md`
+2. Follow the agent's specified behaviors and output format
+3. Save outputs to the designated `open-agents/output-*/` folders
+
+| User says... | Agent |
+|--------------|-------|
+| "Research the history of X" | Researcher |
+| "Create HTML from this" | HTML Generator |
+| "Extract data into JSON" | Data Extractor |
+
+## Operating Principles
+
+- Create a plan before executing any non-trivial task
+- When given a bug or failing test: investigate and fix it without hand-holding
+- Never mark a task complete without demonstrating it works
+- Make every change as simple as possible — find root causes, no temporary fixes
+- After any correction, update `open-agents/memory/lessons.md` with the lesson
+- Review `open-agents/memory/lessons.md` at session start if it exists
 ```
 
 #### open-agents/INSTRUCTIONS.md

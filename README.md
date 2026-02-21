@@ -75,7 +75,7 @@ project/
 │       └── architect.md
 └── .kiro/
     ├── steering/
-    │   └── agents.md        # Points to INSTRUCTIONS.md
+    │   └── agents.md        # Agent routing and operating principles
     └── agents/
         └── default.json     # Kiro agent configuration
 ```

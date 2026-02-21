@@ -25,6 +25,7 @@
   ],
   "resources": [
     "file://.kiro/steering/**/*.md",
+    "file://../../open-agents/INSTRUCTIONS.md",
     "skill://../../open-agents/agents/*.md",
     "skill://.kiro/skills/**/SKILL.md"
   ],
