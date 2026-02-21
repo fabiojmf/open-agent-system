@@ -18,6 +18,7 @@ project-root/
 │
 ├── open-agents/            # Open Agent System
 │   ├── agents/             # Agent definitions
+│   ├── memory/             # Persistent agent memory
 │   ├── source/             # Input materials
 │   └── output-*/           # Processing stages
 │

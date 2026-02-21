@@ -1201,8 +1201,8 @@ This project uses an **Open Agent System** for specialized, non-coding tasks.
 
 | Agent | Purpose | Trigger Phrase |
 |-------|---------|----------------|
-| [Agent 1] (`agents/{name}.md`) | [Brief description] | "[typical user request]" |
-| [Agent 2] (`agents/{name}.md`) | [Brief description] | "[typical user request]" |
+| [Agent 1] (`open-agents/agents/{name}.md`) | [Brief description] | "[typical user request]" |
+| [Agent 2] (`open-agents/agents/{name}.md`) | [Brief description] | "[typical user request]" |
 
 ## Routing
 
